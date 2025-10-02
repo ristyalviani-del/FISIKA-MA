@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Latihan Mengurutkan Bilangan Bulat</title>
+  <style>
+    body{font-family:Inter,system-ui,Arial;margin:32px;background:#f7f9fc;color:#111}
+    h1{font-size:20px;margin-bottom:8px}
+    p.instruksi{margin:6px 0 18px}
+    .area{display:flex;gap:12px;flex-wrap:wrap}
+    .card{background:#fff;padding:10px 14px;border-radius:10px;box-shadow:0 6px 18px rgba(15,23,42,0.05);display:flex;gap:10px;align-items:center}
+    .items{display:flex;gap:8px;padding:12px;background:#eef3ff;border-radius:8px}
+    .item{user-select:none;padding:10px 14px;background:#fff;border-radius:8px;border:2px solid transparent;cursor:grab}
+    .item.dragging{opacity:0.6;border-style:dashed}
+    .controls{margin-top:14px;display:flex;gap:8px}
+    button{padding:8px 12px;border-radius:8px;border:0;background:#2563eb;color:#fff;cursor:pointer}
+    button.secondary{background:#64748b}
+    .feedback{margin-top:12px;font-weight:600}
+  </style>
+</head>
+<body>
+  <h1>Latihan: Urutkan Bilangan Bulat</h1>
+  <p class="instruksi">Susun bilangan bulat dari yang <strong>terkecil</strong> ke yang terbesar. Drag (seret) nomor-nomor di bawah ini sehingga urut: <code>[-2] [-1] [0] [1] [3]</code></p>
+
+  <div class="card">
+    <div>
+      <div style="font-weight:700">Soal</div>
+      <div style="font-size:13px;color:#334155">Acak dari: <em>[-2] [3] [1] [0] [-1]</em></div>
+    </div>
+    <div style="margin-left:16px;flex:1">
+      <div class="items" id="dropzone"></div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button id="shuffleBtn">Acak soal</button>
+    <button id="checkBtn" class="secondary">Periksa jawaban</button>
+    <button id="resetBtn" class="secondary">Reset urutan</button>
+  </div>
+
+  <div class="feedback" id="feedback" aria-live="polite"></div>
+
+<script>
+  // Kelima angka sesuai permintaan
+  const TARGET = ['-2','-1','0','1','3'];
+  const SOURCE = ['-2','3','1','0','-1'];
+
+  const dropzone = document.getElementById('dropzone');
+  const feedback = document.getElementById('feedback');
+  const shuffleBtn = document.getElementById('shuffleBtn');
+  const checkBtn = document.getElementById('checkBtn');
+  const resetBtn = document.getElementById('resetBtn');
+
+  // Render list dengan array urut yang diberikan
+  function render(arr){
+    dropzone.innerHTML = '';
+    arr.forEach(val => {
+      const el = document.createElement('div');
+      el.className = 'item';
+      el.draggable = true;
+      el.dataset.value = val;
+      el.textContent = '['+val+']';
+
+      // drag handlers
+      el.addEventListener('dragstart', (e)=>{
+        el.classList.add('dragging');
+        e.dataTransfer.setData('text/plain', val);
+        e.dataTransfer.effectAllowed = 'move';
+      });
+      el.addEventListener('dragend', ()=>{
+        el.classList.remove('dragging');
+      });
+
+      // allow drop before/after by listening on each item
+      el.addEventListener('dragover', (e)=>{
+        e.preventDefault();
+        const dragging = document.querySelector('.dragging');
+        if(!dragging || dragging === el) return;
+      });
+
+      el.addEventListener('drop', (e)=>{
+        e.preventDefault();
+        const val = e.dataTransfer.getData('text/plain');
+        const dragging = document.querySelector('[data-value="'+val+'"]').parentNode ? document.querySelector('[data-value="'+val+'"]') : null;
+        const draggedEl = document.querySelector('.dragging') || document.querySelector('[data-value="'+val+'"]');
+        if(!draggedEl) return;
+
+        // kalau drop ke sebuah item, sisipkan sebelum item tersebut
+        dropzone.insertBefore(draggedEl, el);
+      });
+
+      dropzone.appendChild(el);
+    });
+  }
+
+  // Membuat reorder dengan drop pada area kosong
+  dropzone.addEventListener('dragover', (e)=>{
+    e.preventDefault();
+    const dragging = document.querySelector('.dragging');
+    if(!dragging) return;
+    // tempatkan di akhir (default) — lebih interaktif dengan hit test bisa ditambahkan
+  });
+
+  dropzone.addEventListener('drop', (e)=>{
+    e.preventDefault();
+    const val = e.dataTransfer.getData('text/plain');
+    const draggedEl = document.querySelector('[data-value="'+val+'"]');
+    if(draggedEl) dropzone.appendChild(draggedEl);
+  });
+
+  // Check jawaban
+  function checkAnswer(){
+    const current = Array.from(dropzone.children).map(x => x.dataset.value);
+    const isCorrect = current.length === TARGET.length && current.every((v,i)=> v === TARGET[i]);
+    if(isCorrect){
+      feedback.textContent = 'hebat jawaban anda benar';
+      feedback.style.color = '#16a34a';
+    } else {
+      feedback.textContent = 'ulangi lagi, jangan menyerah';
+      feedback.style.color = '#dc2626';
+    }
+  }
+
+  // Shuffle (Fisher-Yates)
+  function shuffle(array){
+    const a = array.slice();
+    for(let i=a.length-1;i>0;i--){
+      const j = Math.floor(Math.random()*(i+1));
+      [a[i],a[j]] = [a[j],a[i]];
+    }
+    return a;
+  }
+
+  // Reset ke sumber soal awal (acak sesuai permintaan awal)
+  function resetToSource(){
+    render(SOURCE.slice());
+    feedback.textContent = '';
+  }
+
+  // Event listeners
+  shuffleBtn.addEventListener('click', ()=>{
+    const arr = shuffle(SOURCE);
+    render(arr);
+    feedback.textContent = '';
+  });
+  checkBtn.addEventListener('click', checkAnswer);
+  resetBtn.addEventListener('click', resetToSource);
+
+  // init: acak soal sekali agar muncul random saat dibuka
+  render(shuffle(SOURCE));
+</script>
+</body>
+</html>
