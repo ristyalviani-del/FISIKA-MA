@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>TEKA-TEKI</title>
+  <style>
+    :root{--bg:#f7fafc;--card:#ffffff;--accent:#2b6cb0}
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,'Helvetica Neue',Arial; background:var(--bg); margin:0; display:flex; align-items:center; justify-content:center; min-height:100vh}
+    .card{background:var(--card); padding:28px; border-radius:12px; box-shadow:0 8px 24px rgba(11,22,39,0.06); width:min(640px,92vw)}
+    h1{text-align:center; margin:0 0 18px; letter-spacing:2px}
+    p.question{font-size:18px; line-height:1.5; margin:0 0 18px}
+    .controls{display:flex; gap:8px}
+    input[type="text"]{flex:1; padding:10px 12px; border:1px solid #d1d5db; border-radius:8px; font-size:16px}
+    button{padding:10px 14px; border:0; background:var(--accent); color:white; font-weight:600; border-radius:8px; cursor:pointer}
+    .feedback{margin-top:14px; font-weight:600}
+    .success{color:green}
+    .error{color:#c53030}
+    .sr-only{position:absolute; left:-9999px; width:1px; height:1px; overflow:hidden}
+  </style>
+</head>
+<body>
+  <main class="card" role="main">
+    <h1>TEKA-TEKI</h1>
+    <p class="question">"Aku adalah seekor hewan. Jumlah kakiku ada empat buah. Aku memiliki ekor. Aku juga memiliki belalai. Siapakah aku?"</p>
+
+    <div class="controls">
+      <label for="answer" class="sr-only">Jawaban</label>
+      <input id="answer" type="text" placeholder="Tulis jawabannya di sini..." aria-label="Jawaban teka-teki" />
+      <button id="checkBtn">Cek</button>
+    </div>
+
+    <div id="feedback" class="feedback" aria-live="polite"></div>
+  </main>
+
+  <script>
+    (function(){
+      const valid = ['gajah'];
+      const answerInput = document.getElementById('answer');
+      const checkBtn = document.getElementById('checkBtn');
+      const feedback = document.getElementById('feedback');
+
+      function normalize(s){
+        return s.trim().toLowerCase();
+      }
+
+      function check(){
+        const val = normalize(answerInput.value);
+        if(valid.includes(val)){
+          feedback.textContent = 'Jawaban Anda benar, hebat';
+          feedback.classList.remove('error');
+          feedback.classList.add('success');
+        } else {
+          feedback.textContent = 'Jawaban Anda salah, silahkan coba lagi.';
+          feedback.classList.remove('success');
+          feedback.classList.add('error');
+        }
+      }
+
+      checkBtn.addEventListener('click', check);
+      answerInput.addEventListener('keydown', function(e){ if(e.key === 'Enter') check(); });
+    })();
+  </script>
+</body>
+</html>
