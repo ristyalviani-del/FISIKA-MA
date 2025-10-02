@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Soal Fisika SMA</title>
+  <style>
+    body { 
+      font-family: Arial, sans-serif; 
+      background: #e6ffe6; 
+      padding: 20px;
+    }
+    .soal { margin-bottom: 20px; }
+    img { max-width: 300px; display: block; margin-bottom: 15px; }
+    .opsi { margin: 8px 0; }
+    button { 
+      margin-top: 15px; 
+      padding: 10px 15px; 
+      font-size: 16px; 
+      cursor: pointer; 
+    }
+    #feedback { 
+      margin-top: 15px; 
+      font-weight: bold; 
+    }
+  </style>
+</head>
+<body>
+  <h2>Soal Pilihan Ganda Fisika SMA</h2>
+  <div class="soal">
+    <p><b>Perhatikan gambar hasil pembacaan mikrometer sekrup berikut:</b></p>
+    <img src="https://imgix2.ruangguru.com/assets/miscellaneous/png_flzp0z_3363.png" alt="Mikrometer">
+    <p>Berapakah hasil pengukuran diameter bola menggunakan mikrometer tersebut?</p>
+  </div>
+  
+  <form id="quizForm">
+    <div class="opsi"><input type="radio" name="jawaban" value="7,50"> A. 7,50 mm</div>
+    <div class="opsi"><input type="radio" name="jawaban" value="7,60"> B. 7,60 mm</div>
+    <div class="opsi"><input type="radio" name="jawaban" value="7,70"> C. 7,70 mm</div>
+    <div class="opsi"><input type="radio" name="jawaban" value="7,75"> D. 7,75 mm</div>
+    <div class="opsi"><input type="radio" name="jawaban" value="7,80"> E. 7,80 mm</div>
+  </form>
+
+  <button onclick="cekJawaban()">Hasil</button>
+  <button onclick="resetQuiz()">Reset</button>
+
+  <div id="feedback"></div>
+
+  <script>
+    const jawabanBenar = "7,75";
+
+    function cekJawaban() {
+      const pilihan = document.querySelector('input[name="jawaban"]:checked');
+      const feedback = document.getElementById("feedback");
+
+      if (!pilihan) {
+        feedback.style.color = "orange";
+        feedback.innerHTML = "Silakan pilih salah satu jawaban terlebih dahulu.";
+        return;
+      }
+
+      if (pilihan.value === jawabanBenar) {
+        feedback.style.color = "green";
+        feedback.innerHTML = "Hebat, jawaban anda benar!";
+      } else {
+        feedback.style.color = "red";
+        feedback.innerHTML = "Maaf, jawaban anda salah. Coba lagi!";
+      }
+    }
+
+    function resetQuiz() {
+      document.getElementById("quizForm").reset();
+      document.getElementById("feedback").innerHTML = "";
+    }
+  </script>
+</body>
+</html>
