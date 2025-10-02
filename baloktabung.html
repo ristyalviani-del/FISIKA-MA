@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Jodohkan Gambar dan Kata</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      background: #e8f7e0; /* hijau muda */
+      margin: 0;
+      padding: 20px;
+      color: #123;
+    }
+    .container { max-width: 900px; margin: 0 auto; }
+    h1 { font-size: 1.4rem; margin-bottom: 6px; }
+    p { margin-top: 0; color: #2b4d2b; }
+    .layout { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 16px; }
+    .left, .right { flex: 1 1 320px; background: rgba(255,255,255,0.6); padding: 14px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.06); }
+    .bank { min-height: 80px; display:flex; gap:10px; align-items:center; padding:8px; flex-wrap:wrap; }
+    .word {
+      padding:8px 12px;
+      border-radius:8px;
+      background: #fff;
+      border: 2px solid #cfe7cf;
+      cursor: grab;
+      user-select: none;
+      font-weight:700;
+    }
+    .word:active { cursor: grabbing; }
+    .card-img { text-align:center; margin-bottom:10px; }
+    .card-img img { max-width:100%; height:200px; object-fit:contain; border-radius:8px; border:1px solid #dfefe0; background:white; padding:6px; }
+    .dropzone {
+      width:100%;
+      min-height:60px;
+      border-radius:8px;
+      padding:8px;
+      box-sizing:border-box;
+      resize:none;
+      border: 2px dashed rgba(0,0,0,0.15);
+      font-size:16px;
+      background: rgba(255,255,255,0.9);
+    }
+    .dropzone.dragover { background:#f0fff0; border-color:#7cc47c; }
+    .controls { margin-top:12px; display:flex; gap:10px; }
+    button { padding:10px 14px; border-radius:8px; border:0; cursor:pointer; font-weight:700; }
+    .btn-primary { background:#2e8b57; color:white; }
+    .btn-secondary { background:#fff; color:#2e8b57; border:1px solid #d8efe0; }
+    #feedback { margin-top:12px; font-weight:800; min-height:24px; }
+    .correct { color: #086; }
+    .wrong { color: #b21; }
+    .small { font-size:0.9rem; color:#2b4d2b; margin-top:8px; }
+    /* make bank droppable to return words */
+    .bank.dragover { background:#f7fff7; border-radius:8px; border:2px dashed #bfe6bf; }
+    @media (max-width:700px){
+      .card-img img { height:150px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container" role="main">
+    <h1>Pasangkan Gambar dan Kata</h1>
+    <p>Drag kata dari bank kata ke kotak di bawah tiap gambar. Setelah dipindah, kata di bank akan menghilang.</p>
+
+    <div class="layout">
+      <!-- Bank kata -->
+      <div class="left" aria-label="Bank kata dan instruksi">
+        <h3>Bank Kata</h3>
+        <div id="wordBank" class="bank" aria-live="polite">
+          <div class="word" draggable="true" id="word-balok" data-word="balok">balok</div>
+          <div class="word" draggable="true" id="word-tabung" data-word="tabung">tabung</div>
+        </div>
+        <p class="small">Tarik dan lepaskan kata ke kotak di bawah gambar.</p>
+
+        <div class="controls">
+          <button id="checkBtn" class="btn-primary">Hasil</button>
+          <button id="resetBtn" class="btn-secondary">Reset</button>
+        </div>
+
+        <div id="feedback" aria-live="polite"></div>
+      </div>
+
+      <!-- Area gambar dan dropzones -->
+      <div class="right">
+        <div style="display:flex; gap:12px; flex-wrap:wrap;">
+          <!-- Gambar 1 -->
+          <div style="flex:1 1 45%;">
+            <div class="card-img">
+              <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSJzNkih765fsf9Spdb4qJF3t3ShOBklp695LMRMApocXqmSthqsB95V6Q&s=10" alt="Gambar 1">
+            </div>
+            <textarea id="drop1" class="dropzone" placeholder="Tarik kata ke sini" readonly aria-label="Dropzone gambar 1"></textarea>
+          </div>
+
+          <!-- Gambar 2 -->
+          <div style="flex:1 1 45%;">
+            <div class="card-img">
+              <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQb9NnDzPajPJzttFf3SitR5C6jOq38_Engp0X9FpjtHg&s=10" alt="Gambar 2">
+            </div>
+            <textarea id="drop2" class="dropzone" placeholder="Tarik kata ke sini" readonly aria-label="Dropzone gambar 2"></textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ID elemen
+    const bank = document.getElementById('wordBank');
+    const words = Array.from(document.querySelectorAll('.word'));
+    const drop1 = document.getElementById('drop1');
+    const drop2 = document.getElementById('drop2');
+    const checkBtn = document.getElementById('checkBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const feedbackEl = document.getElementById('feedback');
+
+    // benar: gambar1 -> balok, gambar2 -> tabung
+    const correctMapping = {
+      drop1: 'balok',
+      drop2: 'tabung'
+    };
+
+    // Helper: enable dragging
+    words.forEach(w => {
+      w.addEventListener('dragstart', (e) => {
+        e.dataTransfer.setData('text/plain', w.dataset.word);
+        // juga kirim id untuk memudahkan menghilangkan elemen setelah drop
+        e.dataTransfer.setData('sourceId', w.id);
+        // beri efek
+        setTimeout(() => w.style.opacity = '0.4', 0);
+      });
+      w.addEventListener('dragend', () => {
+        w.style.opacity = '1';
+      });
+    });
+
+    // Fungsi umum untuk membuat drop behavior pada elemen dropzone
+    function makeDropzone(el) {
+      el.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        el.classList.add('dragover');
+      });
+      el.addEventListener('dragleave', (e) => {
+        el.classList.remove('dragover');
+      });
+      el.addEventListener('drop', (e) => {
+        e.preventDefault();
+        el.classList.remove('dragover');
+        const word = e.dataTransfer.getData('text/plain');
+        const sourceId = e.dataTransfer.getData('sourceId');
+
+        if (!word) return;
+
+        // Jika dropzone sudah ada kata, tolak (atau ganti). Kita tolak untuk menegaskan 1 kata per gambar.
+        if (el.value && el.value.trim() !== '') {
+          // kembalikan kata ke bank (jika sumber diambil dari bank maka tampilkan pesan singkat)
+          alert('Kotak ini sudah terisi. Silakan kosongkan terlebih dahulu atau tekan Reset untuk mulai ulang.');
+          return;
+        }
+
+        // Masukkan kata ke dropzone
+        el.value = word;
+
+        // Sembunyikan kata di bank agar "menghilang"
+        if (sourceId) {
+          const src = document.getElementById(sourceId);
+          if (src) src.style.display = 'none';
+        }
+      });
+    }
+
+    // Bank juga droppable untuk 'mengembalikan' kata (opsional)
+    bank.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      bank.classList.add('dragover');
+    });
+    bank.addEventListener('dragleave', () => bank.classList.remove('dragover'));
+    bank.addEventListener('drop', (e) => {
+      e.preventDefault();
+      bank.classList.remove('dragover');
+      const word = e.dataTransfer.getData('text/plain');
+      const sourceId = e.dataTransfer.getData('sourceId');
+      if (!word) return;
+
+      // Jika sumber berasal dari bank (saat drag dari bank tidak ada perubahan),
+      // atau berasal dari dropzone (kita ingin mengembalikan), lakukan pengembalian.
+      if (sourceId) {
+        const src = document.getElementById(sourceId);
+        if (src) {
+          src.style.display = ''; // tampilkan kembali
+        } else {
+          // jika tidak ada elemen (misal sudah dihapus), buat baru
+          const newEl = document.createElement('div');
+          newEl.className = 'word';
+          newEl.draggable = true;
+          newEl.id = 'word-' + word + '-' + Date.now();
+          newEl.dataset.word = word;
+          newEl.textContent = word;
+          setupWord(newEl);
+          bank.appendChild(newEl);
+        }
+      }
+
+      // juga kosongkan dropzones yang berisi kata tersebut (jika ada)
+      if (drop1.value === word) drop1.value = '';
+      if (drop2.value === word) drop2.value = '';
+    });
+
+    // siapkan dropzones
+    makeDropzone(drop1);
+    makeDropzone(drop2);
+
+    // Cek hasil
+    checkBtn.addEventListener('click', () => {
+      const a = drop1.value.trim();
+      const b = drop2.value.trim();
+
+      // Jika belum terisi penuh, beri tahu dulu
+      if (!a || !b) {
+        feedbackEl.className = 'wrong';
+        feedbackEl.textContent = 'maaf jawaban anda salah coba lagi (isi semua kotak dulu)';
+        return;
+      }
+
+      if (a === correctMapping.drop1 && b === correctMapping.drop2) {
+        feedbackEl.className = 'correct';
+        feedbackEl.textContent = 'hebat jawaban anda benar';
+      } else {
+        feedbackEl.className = 'wrong';
+        feedbackEl.textContent = 'maaf jawaban anda salah coba lagi';
+      }
+    });
+
+    // Reset ke kondisi awal
+    resetBtn.addEventListener('click', resetAll);
+
+    function resetAll() {
+      // kosongkan dropzones
+      drop1.value = '';
+      drop2.value = '';
+
+      // tampilkan semua kata (jika sempat di-hide)
+      const allWords = document.querySelectorAll('.word');
+      allWords.forEach(w => w.style.display = '');
+
+      // jika kata sempat dihapus/ditambah, restore bank menjadi awal
+      // (bersihkan bank dan buat ulang dari daftar awal)
+      const initial = ['balok', 'tabung'];
+      bank.innerHTML = '';
+      initial.forEach((w, idx) => {
+        const el = document.createElement('div');
+        el.className = 'word';
+        el.draggable = true;
+        el.id = 'word-' + w;
+        el.dataset.word = w;
+        el.textContent = w;
+        setupWord(el);
+        bank.appendChild(el);
+      });
+
+      feedbackEl.textContent = '';
+    }
+
+    // helper untuk men-setup event drag pada elemen kata baru
+    function setupWord(el) {
+      el.addEventListener('dragstart', (e) => {
+        e.dataTransfer.setData('text/plain', el.dataset.word);
+        e.dataTransfer.setData('sourceId', el.id);
+        setTimeout(() => el.style.opacity = '0.4', 0);
+      });
+      el.addEventListener('dragend', () => el.style.opacity = '1');
+    }
+
+    // inisialisasi (pastikan event terpasang)
+    resetAll();
+
+    // optional: supaya pengguna dapat menghapus isian kotak (misal ingin pindah balik),
+    // mereka bisa klik ganda pada textarea untuk mengosongkan dan muncul lagi di bank.
+    [drop1, drop2].forEach(dz => {
+      dz.addEventListener('dblclick', () => {
+        const val = dz.value.trim();
+        if (!val) return;
+        // kosongkan dropzone
+        dz.value = '';
+        // tampilkan kata kembali di bank (jika ada elemen yang disembunyikan)
+        const hidden = document.querySelectorAll('.word');
+        // jika ada elemen dengan data-word sama dan display:none, tampilkan
+        let shown = false;
+        hidden.forEach(w => {
+          if (w.dataset.word === val) {
+            w.style.display = '';
+            shown = true;
+          }
+        });
+        // jika tidak ada, buat baru
+        if (!shown) {
+          const el = document.createElement('div');
+          el.className = 'word';
+          el.draggable = true;
+          el.id = 'word-' + val + '-' + Date.now();
+          el.dataset.word = val;
+          el.textContent = val;
+          setupWord(el);
+          bank.appendChild(el);
+        }
+        feedbackEl.textContent = '';
+      });
+    });
+  </script>
+</body>
+</html>
